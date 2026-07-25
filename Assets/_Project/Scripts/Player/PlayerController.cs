@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     [SerializeField] private float checkRadius = 0.2f;
     [SerializeField] private LayerMask groundLayer;
     [SerializeField] private Animator animator;
+    [SerializeField] private SpriteRenderer spriteRenderer;
 
     [Header("Movement Settings")] [SerializeField]
     private float speedX = 8f;
@@ -71,10 +72,17 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         }
         else
         {
-            if (rb.linearVelocityY > 0f)
-                animator.Play("PlayerJump");
-            else
-                animator.Play("PlayerFall");
+            animator.Play(rb.linearVelocityY > 0f ? "PlayerJump" : "PlayerFall");
+        }
+    }
+
+    private async void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (collision.gameObject.CompareTag("Hazard"))
+        {
+            spriteRenderer.color = Color.red;
+            await Awaitable.WaitForSecondsAsync(0.1f);
+            spriteRenderer.color = Color.white;
         }
     }
 
