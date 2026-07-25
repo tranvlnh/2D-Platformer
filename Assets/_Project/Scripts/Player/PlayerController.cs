@@ -9,6 +9,7 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     [SerializeField] private Transform groundCheck;
     [SerializeField] private float checkRadius = 0.2f;
     [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private Animator animator;
 
     [Header("Movement Settings")] [SerializeField]
     private float speedX = 8f;
@@ -17,12 +18,12 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     [SerializeField] private float acceleration = 60f;
     [SerializeField] private float coyoteTime = 0.15f;
     [SerializeField] private float jumpBuffer = 0.15f;
+    private float _coyoteTimeCounter;
+    private float _currentSpeedX;
 
     private bool _isGrounded;
-    private float _coyoteTimeCounter;
     private float _jumpBufferCounter;
     private float _targetSpeedX;
-    private float _currentSpeedX;
 
     void FixedUpdate()
     {
@@ -48,7 +49,7 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         {
             _jumpBufferCounter -= Time.fixedDeltaTime;
         }
-       
+
         _currentSpeedX = Mathf.MoveTowards(_currentSpeedX, _targetSpeedX, acceleration * Time.fixedDeltaTime);
         rb.linearVelocityX = _currentSpeedX;
 
@@ -60,11 +61,41 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
             _jumpBufferCounter = 0f;
             _coyoteTimeCounter = 0f;
         }
+
+        if (_isGrounded)
+        {
+            animator.Play(_currentSpeedX != 0 ? "PlayerRun" : "PlayerIdle");
+        }
+        else
+        {
+            if (rb.linearVelocityY > 0f)
+                animator.Play("PlayerJump");
+            else
+                animator.Play("PlayerFall");
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (groundCheck == null) return;
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(groundCheck.position, checkRadius);
     }
 
     public void OnMove(InputAction.CallbackContext context)
     {
-        _targetSpeedX = context.ReadValue<float>() * speedX;
+        var axis = context.ReadValue<float>();
+        _targetSpeedX = axis * speedX;
+
+        var localScale = transform.localScale;
+        localScale.x = axis switch
+        {
+            < 0f => -1,
+            > 0f => 1,
+            _ => localScale.x
+        };
+
+        transform.localScale = localScale;
     }
 
     public void OnJump(InputAction.CallbackContext context)
@@ -73,12 +104,5 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         {
             _jumpBufferCounter = jumpBuffer;
         }
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        if (groundCheck == null) return;
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(groundCheck.position, checkRadius);
     }
 }
