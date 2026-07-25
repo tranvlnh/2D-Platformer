@@ -20,6 +20,7 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     [SerializeField] private float jumpBuffer = 0.15f;
     private float _coyoteTimeCounter;
     private float _currentSpeedX;
+    private bool _doubleJump;
 
     private bool _isGrounded;
     private float _jumpBufferCounter;
@@ -39,6 +40,7 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         if (_isGrounded)
         {
             _coyoteTimeCounter = coyoteTime;
+            _doubleJump = true;
         }
         else
         {
@@ -55,11 +57,12 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
 
         if (_jumpBufferCounter > 0f && _coyoteTimeCounter > 0f)
         {
-            rb.linearVelocityY = 0f;
-            rb.AddForceY(jumpForce, ForceMode2D.Impulse);
-
-            _jumpBufferCounter = 0f;
-            _coyoteTimeCounter = 0f;
+            Jump();
+        }
+        else if (_jumpBufferCounter > 0 && _doubleJump)
+        {
+            Jump();
+            _doubleJump = false;
         }
 
         if (_isGrounded)
@@ -104,5 +107,14 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         {
             _jumpBufferCounter = jumpBuffer;
         }
+    }
+
+    private void Jump()
+    {
+        rb.linearVelocityY = 0f;
+        rb.AddForceY(jumpForce, ForceMode2D.Impulse);
+
+        _jumpBufferCounter = 0f;
+        _coyoteTimeCounter = 0f;
     }
 }
