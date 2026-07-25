@@ -338,6 +338,7 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 64
+  animator: {fileID: 1602748466}
   speedX: 8
   jumpForce: 12
   acceleration: 60
