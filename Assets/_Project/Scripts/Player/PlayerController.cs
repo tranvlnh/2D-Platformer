@@ -98,15 +98,12 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         var axis = context.ReadValue<float>();
         _targetSpeedX = axis * speedX;
 
-        var localScale = transform.localScale;
-        localScale.x = axis switch
+        spriteRenderer.flipX = axis switch
         {
-            < 0f => -1,
-            > 0f => 1,
-            _ => localScale.x
+            < 0f => true,
+            > 0f => false,
+            _ => spriteRenderer.flipX
         };
-
-        transform.localScale = localScale;
     }
 
     public void OnJump(InputAction.CallbackContext context)
