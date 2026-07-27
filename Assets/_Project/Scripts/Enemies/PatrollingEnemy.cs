@@ -1,5 +1,7 @@
 using UnityEngine;
 
+// ReSharper disable CheckNamespace
+
 public class PatrollingEnemy : MonoBehaviour
 {
     [Header("Movement Settings")] [SerializeField]
