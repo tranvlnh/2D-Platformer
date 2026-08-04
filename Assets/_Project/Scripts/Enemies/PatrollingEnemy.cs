@@ -34,10 +34,10 @@ public class PatrollingEnemy : MonoBehaviour {
 			return;
 		}
 
-		var target = waypoints[_index].position;
-		if (Vector3.Distance(_rb.position, target) > 0.05f)
+		var target = (Vector2)waypoints[_index].position;
+		if (Vector2.Distance(_rb.position, target) > 0.05f)
 		{
-			var newPos = Vector3.MoveTowards(_rb.position, target, speed*Time.fixedDeltaTime);
+			var newPos = Vector2.MoveTowards(_rb.position, target, speed*Time.fixedDeltaTime);
 			_rb.MovePosition(newPos);
 
 			_animator.Play("EnemyRun");
