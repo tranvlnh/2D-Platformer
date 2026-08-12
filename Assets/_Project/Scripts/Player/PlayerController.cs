@@ -3,123 +3,136 @@ using UnityEngine.InputSystem;
 
 // ReSharper disable CheckNamespace
 
-public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
-{
-    [SerializeField] private Rigidbody2D rb;
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private float checkRadius = 0.2f;
-    [SerializeField] private LayerMask groundLayer;
-    [SerializeField] private Animator animator;
-    [SerializeField] private SpriteRenderer spriteRenderer;
+public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions {
 
-    [Header("Movement Settings")] [SerializeField]
-    private float speedX = 8f;
+	[Header("Ground Settings")]
+	[SerializeField]
+	float checkRadius = 0.2f;
 
-    [SerializeField] private float jumpForce = 12f;
-    [SerializeField] private float acceleration = 60f;
-    [SerializeField] private float coyoteTime = 0.15f;
-    [SerializeField] private float jumpBuffer = 0.15f;
-    private float _coyoteTimeCounter;
-    private float _currentSpeedX;
-    private bool _doubleJump;
+	[SerializeField] Transform groundCheck;
+	[SerializeField] LayerMask groundLayer;
 
-    private bool _isGrounded;
-    private float _jumpBufferCounter;
-    private float _targetSpeedX;
+	[Header("Movement Settings")]
+	[SerializeField]
+	float speedX = 8f;
 
-    void FixedUpdate()
-    {
-        if (rb.linearVelocityY <= 0.1f)
-        {
-            _isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
-        }
-        else
-        {
-            _isGrounded = false;
-        }
+	[SerializeField] float jumpForce = 12f;
+	[SerializeField] float acceleration = 60f;
+	[SerializeField] float coyoteTime = 0.15f;
+	[SerializeField] float jumpBuffer = 0.15f;
+	Animator _animator;
 
-        if (_isGrounded)
-        {
-            _coyoteTimeCounter = coyoteTime;
-            _doubleJump = true;
-        }
-        else
-        {
-            _coyoteTimeCounter -= Time.fixedDeltaTime;
-        }
+	float _coyoteTimeCounter;
+	float _currentSpeedX;
+	bool _doubleJump;
 
-        if (_jumpBufferCounter > 0f)
-        {
-            _jumpBufferCounter -= Time.fixedDeltaTime;
-        }
+	bool _isGrounded;
+	float _jumpBufferCounter;
 
-        _currentSpeedX = Mathf.MoveTowards(_currentSpeedX, _targetSpeedX, acceleration * Time.fixedDeltaTime);
-        rb.linearVelocityX = _currentSpeedX;
 
-        if (_jumpBufferCounter > 0f && _coyoteTimeCounter > 0f)
-        {
-            Jump();
-        }
-        else if (_jumpBufferCounter > 0 && _doubleJump)
-        {
-            Jump();
-            _doubleJump = false;
-        }
+	Rigidbody2D _rb;
+	SpriteRenderer _spriteRenderer;
+	float _targetSpeedX;
 
-        if (_isGrounded)
-        {
-            animator.Play(_currentSpeedX != 0 ? "PlayerRun" : "PlayerIdle");
-        }
-        else
-        {
-            animator.Play(rb.linearVelocityY > 0f ? "PlayerJump" : "PlayerFall");
-        }
-    }
+	void Awake()
+	{
+		_rb = GetComponent<Rigidbody2D>();
+		_animator = GetComponent<Animator>();
+		_spriteRenderer = GetComponent<SpriteRenderer>();
+	}
 
-    private async void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Hazard"))
-        {
-            spriteRenderer.color = Color.red;
-            await Awaitable.WaitForSecondsAsync(0.1f);
-            spriteRenderer.color = Color.white;
-        }
-    }
+	void FixedUpdate()
+	{
+		if (_rb.linearVelocityY <= 0.1f)
+		{
+			_isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
+		}
+		else
+		{
+			_isGrounded = false;
+		}
 
-    private void OnDrawGizmosSelected()
-    {
-        if (groundCheck == null) return;
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(groundCheck.position, checkRadius);
-    }
+		if (_isGrounded)
+		{
+			_coyoteTimeCounter = coyoteTime;
+			_doubleJump = true;
+		}
+		else
+		{
+			_coyoteTimeCounter -= Time.fixedDeltaTime;
+		}
 
-    public void OnMove(InputAction.CallbackContext context)
-    {
-        var axis = context.ReadValue<float>();
-        _targetSpeedX = axis * speedX;
+		if (_jumpBufferCounter > 0f)
+		{
+			_jumpBufferCounter -= Time.fixedDeltaTime;
+		}
 
-        spriteRenderer.flipX = axis switch
-        {
-            < 0f => true,
-            > 0f => false,
-            _ => spriteRenderer.flipX
-        };
-    }
+		_currentSpeedX = Mathf.MoveTowards(_currentSpeedX, _targetSpeedX, acceleration*Time.fixedDeltaTime);
+		_rb.linearVelocityX = _currentSpeedX;
 
-    public void OnJump(InputAction.CallbackContext context)
-    {
-        if (context.started)
-        {
-            _jumpBufferCounter = jumpBuffer;
-        }
-    }
+		if (_jumpBufferCounter > 0f && _coyoteTimeCounter > 0f)
+		{
+			Jump();
+		}
+		else if (_jumpBufferCounter > 0 && _doubleJump)
+		{
+			Jump();
+			_doubleJump = false;
+		}
 
-    private void Jump()
-    {
-        rb.linearVelocityY = 0f;
-        rb.AddForceY(jumpForce, ForceMode2D.Impulse);
+		if (_isGrounded)
+		{
+			_animator.Play(_currentSpeedX != 0 ? "PlayerRun" : "PlayerIdle");
+		}
+		else
+		{
+			_animator.Play(_rb.linearVelocityY > 0f ? "PlayerJump" : "PlayerFall");
+		}
+	}
 
-        _jumpBufferCounter = 0f;
-        _coyoteTimeCounter = 0f;
-    }
+	async void OnCollisionEnter2D(Collision2D collision)
+	{
+		if (collision.gameObject.CompareTag("Hazard"))
+		{
+			_spriteRenderer.color = Color.red;
+			await Awaitable.WaitForSecondsAsync(0.1f);
+			_spriteRenderer.color = Color.white;
+		}
+	}
+
+	void OnDrawGizmosSelected()
+	{
+		if (groundCheck == null) return;
+		Gizmos.color = Color.green;
+		Gizmos.DrawWireSphere(groundCheck.position, checkRadius);
+	}
+
+	public void OnMove(InputAction.CallbackContext context)
+	{
+		var axis = context.ReadValue<float>();
+		_targetSpeedX = axis*speedX;
+
+		_spriteRenderer.flipX = axis switch{
+			< 0f => true,
+			> 0f => false,
+			_ => _spriteRenderer.flipX
+		};
+	}
+
+	public void OnJump(InputAction.CallbackContext context)
+	{
+		if (context.started)
+		{
+			_jumpBufferCounter = jumpBuffer;
+		}
+	}
+
+	void Jump()
+	{
+		_rb.linearVelocityY = 0f;
+		_rb.AddForceY(jumpForce, ForceMode2D.Impulse);
+
+		_jumpBufferCounter = 0f;
+		_coyoteTimeCounter = 0f;
+	}
 }
