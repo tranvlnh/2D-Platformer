@@ -372,6 +372,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   speedX: 8
+  bulletPrefab: {fileID: 6952378422972444093, guid: 7b6d94785b7f5014191694dba2feafe2, type: 3}
+  currentAmmo: 10
   jumpForce: 12
   acceleration: 60
   coyoteTime: 0.15
@@ -433,6 +435,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 2b61594d-e67e-4f2d-9544-4956382c64fd
     m_ActionName: 'Player/Jump[/Keyboard/space,/Keyboard/w,/Keyboard/upArrow]'
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 264326318}
+        m_TargetAssemblyTypeName: PlayerController, Assembly-CSharp
+        m_MethodName: OnFire
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 6abf57fc-464a-4cfc-9c49-f1b5efc702a4
+    m_ActionName: 'Player/Fire[/Keyboard/f]'
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player

@@ -23,6 +23,6 @@ public class Test2 : MonoBehaviour
 
     private void OnTriggerStay2D(Collider2D other)
     {
-        if (text.active && other.CompareTag("Player") && Time.time - startTime > 2f) text.SetActive(false);
+        if (text.activeInHierarchy && other.CompareTag("Player") && Time.time - startTime > 2f) text.SetActive(false);
     }
 }
