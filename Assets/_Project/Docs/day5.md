@@ -125,3 +125,106 @@ public class CoroutineExample : MonoBehaviour
     }
 }
 ```
+
+## 3. Async/Await (`Awaitable`) trong Unity
+
+`Awaitable` (từ Unity 2023 / Unity 6+) là giải pháp lập trình bất đồng bộ chuẩn hiện đại thay thế cho `Coroutine` (`IEnumerator`), giúp loại bỏ rác bộ nhớ (Zero-allocation), hỗ trợ trả về dữ liệu trực tiếp và bắt lỗi qua `try/catch`.
+
+### 3.1 Khái niệm & Luồng (Threading)
+* **Bản chất luồng:** Mặc định các tác vụ `async Awaitable` vẫn được điều phối và thực thi trên **Main Thread** của Unity, cho phép gọi và thao tác an toàn với các Unity API (`Transform`, `Rigidbody2D`, `Instantiate`,...).
+* **Cơ chế:** Khi gặp từ khóa `await`, hàm sẽ tạm dừng và nhường quyền kiểm soát lại cho Unity. Sau khi tác vụ chờ hoàn tất, luồng sẽ quay lại đúng vị trí đó và tiếp tục thực hiện các câu lệnh tiếp theo.
+
+---
+
+### 3.2 Bảng quy đổi câu lệnh từ Coroutine sang Async/Await
+
+| Mục đích | Coroutine (`IEnumerator`) | Async/Await (`Awaitable`) |
+| :--- | :--- | :--- |
+| **Chờ frame kế tiếp** | `yield return null;` | `await Awaitable.NextFrameAsync();` |
+| **Chờ chu kỳ vật lý** | `yield return new WaitForFixedUpdate();` | `await Awaitable.FixedUpdateAsync();` |
+| **Chờ theo thời gian game** | `yield return new WaitForSeconds(n);` | `await Awaitable.WaitForSecondsAsync(n);` |
+| **Chờ cuối frame (hậu render)** | `yield return new WaitForEndOfFrame();` | `await Awaitable.EndOfFrameAsync();` |
+| **Giá trị trả về** | Không hỗ trợ (phải dùng callback/event) | Hỗ trợ tự nhiên: `async Awaitable<T>` |
+
+---
+
+### 3.3 Cách sử dụng, Khởi chạy và Hủy tác vụ (`CancellationToken`)
+
+Thay vì dùng `StopCoroutine()`, lập trình bất đồng bộ quản lý vòng đời và dừng tác vụ thông qua **`CancellationToken`**. Unity cung cấp sẵn `destroyCancellationToken` gắn liền với vòng đời của `MonoBehaviour`.
+
+```csharp
+using System;
+using System.Threading;
+using UnityEngine;
+
+public class AsyncAwaitExample : MonoBehaviour
+{
+    private CancellationTokenSource _cts;
+
+    private void Start()
+    {
+        // 1. Khởi chạy tác vụ (Tương đương StartCoroutine)
+        StartCountdown();
+    }
+
+    private void StartCountdown()
+    {
+        // Tạo token để có thể chủ động hủy khi cần
+        _cts = new CancellationTokenSource();
+
+        // Kết hợp token nội bộ với token tự hủy của GameObject
+        var linkedToken = CancellationTokenSource.CreateLinkedTokenSource(
+            _cts.Token, 
+            destroyCancellationToken // Tự động hủy nếu GameObject bị Destroy
+        ).Token;
+
+        // Gọi hàm async an toàn
+        _ = CountdownAsync(3, linkedToken);
+    }
+
+    // Hàm bất đồng bộ trả về Awaitable
+    private async Awaitable CountdownAsync(int seconds, CancellationToken ct)
+    {
+        try
+        {
+            for (int i = seconds; i > 0; i--)
+            {
+                Debug.Log($"Đếm ngược: {i}");
+
+                // Tạm dừng 1 giây (nếu bị hủy sẽ ném OperationCanceledException)
+                await Awaitable.WaitForSecondsAsync(1f, cancellationToken: ct);
+            }
+
+            // Chờ thêm 1 frame
+            await Awaitable.NextFrameAsync(cancellationToken: ct);
+            Debug.Log("Bùm!");
+        }
+        catch (OperationCanceledException)
+        {
+            Debug.Log("Tác vụ đã được dừng an toàn!");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Phát sinh lỗi: {ex.Message}");
+        }
+    }
+
+    private void StopCountdown()
+    {
+        // 2. Dừng tác vụ (Tương đương StopCoroutine)
+        if (_cts != null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Dọn dẹp tài nguyên khi script bị hủy
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}
+```
