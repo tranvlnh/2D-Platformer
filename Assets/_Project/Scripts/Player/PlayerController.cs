@@ -43,6 +43,18 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         _spriteRenderer = GetComponent<SpriteRenderer>();
         OnPlayerShoot += (remainingAmmo, shootDirection) =>
         {
+            if (currentAmmo <= 0)
+            {
+                Debug.Log("<color=red>Hết đạn! Cần nạp đạn (Reload).</color>");
+                return;
+            }
+
+            if (bulletPrefab == null) return;
+
+            Instantiate(bulletPrefab, transform.position, transform.rotation);
+
+            currentAmmo--;
+
             Debug.Log($"<color=yellow>[BẮN]</color> Đã bắn 1 viên! Đạn còn lại: <b>{remainingAmmo}</b>");
 
             _currentSpeedX = -shootDirection.x * 5f;
@@ -87,6 +99,11 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
             _animator.Play(_rb.linearVelocityY > 0f ? "PlayerJump" : "PlayerFall");
     }
 
+    private void OnDestroy()
+    {
+        OnPlayerShoot = null;
+    }
+
     private async void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Hazard"))
@@ -126,18 +143,6 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     {
         if (context.started)
         {
-            if (currentAmmo <= 0)
-            {
-                Debug.Log("<color=red>Hết đạn! Cần nạp đạn (Reload).</color>");
-                return;
-            }
-
-            if (bulletPrefab == null) return;
-
-            Instantiate(bulletPrefab, transform.position, transform.rotation);
-
-            currentAmmo--;
-
             Vector2 shootDirection = transform.right;
             OnPlayerShoot?.Invoke(currentAmmo, shootDirection);
         }
