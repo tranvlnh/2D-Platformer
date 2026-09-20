@@ -6,6 +6,10 @@ using UnityEngine.InputSystem;
 
 public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
 {
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int VerticalSpeedHash = Animator.StringToHash("VerticalSpeed");
+    private static readonly int IsGroundedHash = Animator.StringToHash("IsGrounded");
+
     [Header("Ground Settings")] [SerializeField]
     private float checkRadius = 0.2f;
 
@@ -22,16 +26,13 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     [SerializeField] private float acceleration = 60f;
     [SerializeField] private float coyoteTime = 0.15f;
     [SerializeField] private float jumpBuffer = 0.15f;
-    private Animator _animator;
 
+    private Animator _animator;
     private float _coyoteTimeCounter;
     private float _currentSpeedX;
     private bool _doubleJump;
-
     private bool _isGrounded;
     private float _jumpBufferCounter;
-
-
     private Rigidbody2D _rb;
     private SpriteRenderer _spriteRenderer;
     private float _targetSpeedX;
@@ -41,6 +42,7 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
         _rb = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+
         OnPlayerShoot += (remainingAmmo, shootDirection) =>
         {
             if (currentAmmo <= 0)
@@ -64,9 +66,16 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
     private void FixedUpdate()
     {
         if (_rb.linearVelocityY <= 0.1f)
-            _isGrounded = Physics2D.OverlapCircle(groundCheck.position, checkRadius, groundLayer);
+        {
+            _isGrounded = Physics2D.OverlapCircle(
+                groundCheck.position,
+                checkRadius,
+                groundLayer);
+        }
         else
+        {
             _isGrounded = false;
+        }
 
         if (_isGrounded)
         {
@@ -80,23 +89,23 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
 
         if (_jumpBufferCounter > 0f) _jumpBufferCounter -= Time.fixedDeltaTime;
 
-        _currentSpeedX = Mathf.MoveTowards(_currentSpeedX, _targetSpeedX, acceleration * Time.fixedDeltaTime);
+        _currentSpeedX = Mathf.MoveTowards(
+            _currentSpeedX,
+            _targetSpeedX,
+            acceleration * Time.fixedDeltaTime);
         _rb.linearVelocityX = _currentSpeedX;
 
         if (_jumpBufferCounter > 0f && _coyoteTimeCounter > 0f)
         {
             Jump();
         }
-        else if (_jumpBufferCounter > 0 && _doubleJump)
+        else if (_jumpBufferCounter > 0f && _doubleJump)
         {
             Jump();
             _doubleJump = false;
         }
 
-        if (_isGrounded)
-            _animator.Play(_currentSpeedX != 0 ? "PlayerRun" : "PlayerIdle");
-        else
-            _animator.Play(_rb.linearVelocityY > 0f ? "PlayerJump" : "PlayerFall");
+        UpdateAnimatorParameters();
     }
 
     private void OnDestroy()
@@ -146,6 +155,21 @@ public class PlayerController : MonoBehaviour, PlayerInputActions.IPlayerActions
             Vector2 shootDirection = transform.right;
             OnPlayerShoot?.Invoke(currentAmmo, shootDirection);
         }
+    }
+
+    private void UpdateAnimatorParameters()
+    {
+        var normalizedSpeed = speedX > 0f
+            ? Mathf.Abs(_currentSpeedX) / speedX
+            : 0f;
+
+        var normalizedVerticalSpeed = jumpForce > 0f
+            ? Mathf.Clamp(_rb.linearVelocityY / jumpForce, -1f, 1f)
+            : 0f;
+
+        _animator.SetFloat(SpeedHash, normalizedSpeed);
+        _animator.SetFloat(VerticalSpeedHash, normalizedVerticalSpeed);
+        _animator.SetBool(IsGroundedHash, _isGrounded);
     }
 
     public static event Action<int, Vector2> OnPlayerShoot;
